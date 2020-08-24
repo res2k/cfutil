@@ -1,12 +1,89 @@
-#include <iostream>
+#include "Command.hpp"
+#include "CommandInfo.hpp"
 
+#include <functional>
+#include <iostream>
+#include <unordered_map>
+
+#include <boost/algorithm/string/case_conv.hpp>
+#include <boost/multi_index_container.hpp>
+#include <boost/multi_index/hashed_index.hpp>
+#include <boost/multi_index/key.hpp>
+#include <boost/multi_index/sequenced_index.hpp>
 #include <boost/optional.hpp>
 #include <boost/program_options.hpp>
+#include <boost/utility/string_view.hpp>
+
+namespace multi_index = boost::multi_index;
+
+class CommandManager
+{
+public:
+  template<typename Impl>
+  void add();
+
+  std::unique_ptr<Command> resolve(const wchar_t* id) const;
+
+  struct AvailableCommand
+  {
+    const wchar_t* id;
+    const wchar_t* descr;
+  };
+  std::vector<AvailableCommand> all() const;
+
+private:
+  struct RegisteredCommand
+  {
+    boost::wstring_view id;
+    const wchar_t* descr;
+    std::function<std::unique_ptr<Command>()> factoryFunc;
+  };
+
+  struct Seq;
+  struct Id;
+  boost::multi_index_container<
+    RegisteredCommand,
+    multi_index::indexed_by<multi_index::sequenced<multi_index::tag<Seq>>,
+                            multi_index::hashed_unique<multi_index::tag<Id>, multi_index::key<&RegisteredCommand::id>>>>
+    commands;
+};
+
+template<typename Impl>
+void CommandManager::add()
+{
+  commands.push_back(RegisteredCommand { Impl::id(), Impl::description(),
+                                         []() -> std::unique_ptr<Command> { return std::make_unique<Impl>(); } });
+}
+
+std::unique_ptr<Command> CommandManager::resolve(const wchar_t* id) const
+{
+  std::wstring idStr(id);
+  boost::algorithm::to_lower(idStr);
+  auto cmdByKey = commands.get<Id>().find(idStr);
+  if(cmdByKey == commands.get<Id>().end())
+    return nullptr;
+  return cmdByKey->factoryFunc();
+}
+
+std::vector<CommandManager::AvailableCommand> CommandManager::all() const
+{
+  std::vector<AvailableCommand> cmds;
+  for(const auto& cmd : commands.get<Id>())
+  {
+    cmds.emplace_back(AvailableCommand { cmd.id.data(), cmd.descr });
+  }
+  return cmds;
+}
+
+//---------------------------------------------------------------------------
 
 namespace po = boost::program_options;
 
 int wmain(int argc, const wchar_t* const argv[])
 {
+  CommandManager cmds;
+  cmds.add<CommandInfo>();
+
   /* Arguments order:
     <general options> <command> <command options>
     ...so look for index with command by skipping all (initial)
@@ -61,6 +138,11 @@ int wmain(int argc, const wchar_t* const argv[])
     descStream << displayDesc;
 
     std::wcout << boost::from_local_8_bit(descStream.str()) << std::endl;
+
+    std::wcout << L"Available commands:" << std::endl;
+    for(const auto& cmd : cmds.all()) {
+      std::wcout << L"  " << cmd.id << L"\t" << cmd.descr << std::endl;
+    }
   };
 
   if (vm.count("help")) {
@@ -74,7 +156,12 @@ int wmain(int argc, const wchar_t* const argv[])
     return 1;
   }
 
-  // TODO: Handle command
+  // Handle command
+  auto cmdObj = cmds.resolve(command->c_str());
+  if(!cmdObj) {
+    std::wcerr << L"Invalid 'command' argument: " << *command << std::endl;
+    return 1;
+  }
 
-  return 0;
+  return cmdObj->exec(&argv[commandOptIndex], &argv[argc]);
 }
