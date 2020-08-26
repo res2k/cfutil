@@ -16,5 +16,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost 1.73 REQUIRED COMPONENTS program_options)
 
-add_executable (cfutil "cfutil.cpp" "Command.hpp" "CommandInfo.hpp" "CommandInfo.cpp")
+add_compile_definitions(UNICODE _UNICODE NOMINMAX)
+add_executable(cfutil)
+target_sources(cfutil PRIVATE
+               "cfutil.cpp"
+               "Command.hpp"
+               "CommandInfo.hpp"
+               "CommandInfo.cpp"
+               "ntdll.cpp"
+               "ntdll.hpp"
+               "util.cpp"
+               "util.hpp")
 target_link_libraries(cfutil PRIVATE Boost::disable_autolinking Boost::program_options)
+target_link_libraries(cfutil PRIVATE cldapi.lib)

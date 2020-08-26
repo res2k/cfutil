@@ -1,5 +1,6 @@
 #include "Command.hpp"
 #include "CommandInfo.hpp"
+#include "ntdll.hpp"
 
 #include <functional>
 #include <iostream>
@@ -81,6 +82,10 @@ namespace po = boost::program_options;
 
 int wmain(int argc, const wchar_t* const argv[])
 {
+  if (auto ntdll_err = ntdllInit(); ntdll_err != ERROR_SUCCESS)
+    return static_cast<int>(ntdll_err);
+  RtlSetProcessPlaceholderCompatibilityMode(PHCM_EXPOSE_PLACEHOLDERS);
+
   CommandManager cmds;
   cmds.add<CommandInfo>();
 
