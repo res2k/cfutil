@@ -1,4 +1,5 @@
 #include "Command.hpp"
+#include "CommandDelete.hpp"
 #include "CommandInfo.hpp"
 #include "ntdll.hpp"
 
@@ -88,6 +89,7 @@ int wmain(int argc, const wchar_t* const argv[])
 
   CommandManager cmds;
   cmds.add<CommandInfo>();
+  cmds.add<CommandDelete>();
 
   /* Arguments order:
     <general options> <command> <command options>

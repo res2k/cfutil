@@ -18,5 +18,6 @@ enum {
 };
 
 CHAR RtlSetProcessPlaceholderCompatibilityMode(CHAR mode);
+NTSTATUS NtDeleteFile(IN POBJECT_ATTRIBUTES ObjectAttributes);
 
 #endif // NTDLL_HPP_

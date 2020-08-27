@@ -9,6 +9,8 @@
 using FnRtlSetProcessPlaceholderCompatibilityMode = CHAR(NTAPI*)(CHAR);
 static FnRtlSetProcessPlaceholderCompatibilityMode pfnRtlSetProcessPlaceholderCompatibilityMode =
   nullptr;
+using FnNtDeleteFile = NTSTATUS(NTAPI*)(IN POBJECT_ATTRIBUTES);
+static FnNtDeleteFile pfnNtDeleteFile = nullptr;
 
 template<typename PFN>
 static DWORD TryGetFunction(HMODULE ntdll, PFN& func, const char* name)
@@ -36,6 +38,9 @@ DWORD ntdllInit()
       funcErr != ERROR_SUCCESS) {
     return funcErr;
   }
+  if (auto funcErr = TryGetFunction(ntdll, pfnNtDeleteFile, "NtDeleteFile"); funcErr != ERROR_SUCCESS) {
+    return funcErr;
+  }
 
   return ERROR_SUCCESS;
 }
@@ -43,4 +48,9 @@ DWORD ntdllInit()
 CHAR RtlSetProcessPlaceholderCompatibilityMode (CHAR mode)
 {
   return pfnRtlSetProcessPlaceholderCompatibilityMode (mode);
+}
+
+NTSTATUS NtDeleteFile(IN POBJECT_ATTRIBUTES ObjectAttributes)
+{
+  return pfnNtDeleteFile(ObjectAttributes);
 }

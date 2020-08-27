@@ -21,6 +21,8 @@ add_executable(cfutil)
 target_sources(cfutil PRIVATE
                "cfutil.cpp"
                "Command.hpp"
+               "CommandDelete.hpp"
+               "CommandDelete.cpp"
                "CommandInfo.hpp"
                "CommandInfo.cpp"
                "ntdll.cpp"
@@ -28,4 +30,4 @@ target_sources(cfutil PRIVATE
                "util.cpp"
                "util.hpp")
 target_link_libraries(cfutil PRIVATE Boost::disable_autolinking Boost::program_options)
-target_link_libraries(cfutil PRIVATE cldapi.lib)
+target_link_libraries(cfutil PRIVATE cldapi.lib ntdll.lib)
